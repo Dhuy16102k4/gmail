@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'register_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -13,12 +14,54 @@ class LoginPageState extends State<LoginPage> {
   final _passwordController = TextEditingController();
   bool _showPasswordField = false;
   bool _emailFieldLocked = false;
+  bool _showPassword = false;
 
   void _navigateToRegister() {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const RegisterPage()),
     );
+  }
+
+  Future<void> _login() async {
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+      // Navigation to HomePage is handled by AuthWrapper
+    } on FirebaseAuthException catch (e) {
+      String message;
+      switch (e.code) {
+        case 'user-not-found':
+          message = 'Tài khoản không tồn tại.';
+          break;
+        case 'wrong-password':
+          message = 'Mật khẩu không đúng.';
+          break;
+        case 'invalid-email':
+          message = 'Email không hợp lệ.';
+          break;
+        case 'user-disabled':
+          message = 'Tài khoản đã bị vô hiệu hóa.';
+          break;
+        default:
+          message = 'Đăng nhập thất bại: ${e.message}';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Lỗi không xác định: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _showNext() {
@@ -42,6 +85,12 @@ class LoginPageState extends State<LoginPage> {
     setState(() {
       _showPasswordField = false;
       _emailFieldLocked = false;
+    });
+  }
+
+  void _togglePasswordVisibility() {
+    setState(() {
+      _showPassword = !_showPassword;
     });
   }
 
@@ -80,7 +129,7 @@ class LoginPageState extends State<LoginPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        flex: 45,
+                        flex: 30,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
@@ -93,29 +142,19 @@ class LoginPageState extends State<LoginPage> {
                                 ),
                                 const SizedBox(width: 12),
                                 const Text(
-                                  'Đăng nhập',
+                                  'Login',
                                   style: TextStyle(
                                     fontFamily: 'Roboto',
-                                    fontWeight: FontWeight.w500,
                                     fontSize: 24,
                                     color: Color(0xFFE8EAED),
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 12),
-                            const Text(
-                              'Sử dụng Tài khoản Google của bạn',
-                              style: TextStyle(
-                                fontFamily: 'Roboto',
-                                fontSize: 14,
-                                color: Color(0xFFBDC1C6),
-                              ),
-                            ),
                           ],
                         ),
                       ),
-                      const SizedBox(width: 24),
+                      const SizedBox(width: 10),
                       Expanded(
                         flex: 55,
                         child: Column(
@@ -172,7 +211,7 @@ class LoginPageState extends State<LoginPage> {
                                 width: 350,
                                 child: TextField(
                                   controller: _passwordController,
-                                  obscureText: true,
+                                  obscureText: !_showPassword,
                                   style: const TextStyle(
                                     color: Color(0xFFE8EAED),
                                     fontFamily: 'Roboto',
@@ -185,6 +224,13 @@ class LoginPageState extends State<LoginPage> {
                                     ),
                                     filled: true,
                                     fillColor: const Color(0xFF3C4043),
+                                    suffixIcon: IconButton(
+                                      icon: Icon(
+                                        _showPassword ? Icons.visibility : Icons.visibility_off,
+                                        color: const Color(0xFFBDC1C6),
+                                      ),
+                                      onPressed: _togglePasswordVisibility,
+                                    ),
                                     border: OutlineInputBorder(
                                       borderSide: const BorderSide(
                                         color: Color(0xFF5F6368),
@@ -210,7 +256,15 @@ class LoginPageState extends State<LoginPage> {
                             const SizedBox(height: 16),
                             if (!_showPasswordField)
                               GestureDetector(
-                                onTap: () {},
+                                onTap: () {
+                                  // Implement password recovery logic here
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Chức năng khôi phục mật khẩu chưa được triển khai.'),
+                                      backgroundColor: Colors.orange,
+                                    ),
+                                  );
+                                },
                                 child: const Text(
                                   'Bạn quên mật khẩu?',
                                   style: TextStyle(
@@ -276,7 +330,7 @@ class LoginPageState extends State<LoginPage> {
                                 ),
                                 const SizedBox(width: 12),
                                 ElevatedButton(
-                                  onPressed: _showNext,
+                                  onPressed: _showPasswordField ? _login : _showNext,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF8AB4F8),
                                     foregroundColor: const Color(0xFF202124),
@@ -288,9 +342,9 @@ class LoginPageState extends State<LoginPage> {
                                       vertical: 8,
                                     ),
                                   ),
-                                  child: const Text(
-                                    'Tiếp theo',
-                                    style: TextStyle(
+                                  child: Text(
+                                    _showPasswordField ? 'Đăng nhập' : 'Tiếp theo',
+                                    style: const TextStyle(
                                       fontFamily: 'Roboto',
                                       fontWeight: FontWeight.w500,
                                       fontSize: 14,

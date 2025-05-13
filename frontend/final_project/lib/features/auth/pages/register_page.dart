@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'login_page.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -47,6 +49,66 @@ class RegisterPageState extends State<RegisterPage> {
     setState(() {
       _showPassword = !_showPassword;
     });
+  }
+
+  void _navigateToLogin() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginPage()),
+    );
+  }
+
+  Future<void> _register() async {
+    if (_passwordController.text != _confirmPasswordController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Mật khẩu xác nhận không khớp'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    try {
+      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: '${_usernameController.text.trim()}@gmail.com',
+        password: _passwordController.text.trim(),
+      );
+
+      await userCredential.user?.updateDisplayName(
+        '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}'.trim(),
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Đăng ký thành công!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+      );
+    } on FirebaseAuthException catch (e) {
+      String message;
+      switch (e.code) {
+        case 'email-already-in-use':
+          message = 'Email đã được sử dụng.';
+          break;
+        case 'weak-password':
+          message = 'Mật khẩu quá yếu.';
+          break;
+        default:
+          message = 'Đăng ký thất bại: ${e.message}';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -98,7 +160,7 @@ class RegisterPageState extends State<RegisterPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        flex: 45,
+                        flex: 30,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
@@ -110,35 +172,15 @@ class RegisterPageState extends State<RegisterPage> {
                                   width: 40,
                                 ),
                                 const SizedBox(width: 12),
-                                
+                                const Text(
+                                  'Register',
+                                  style: TextStyle(
+                                    fontFamily: 'Roboto',
+                                    fontSize: 20,
+                                    color: Color(0xFFE8EAED),
+                                  ),
+                                ),
                               ],
-                            ),
-                            const Text(
-                                  '',
-                                  style: TextStyle(
-                                    fontFamily: 'Roboto',
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 24,
-                                    color: Color(0xFFE8EAED),
-                                  ),
-                                ),
-                            const Text(
-                                  'Tạo Tài khoản Google',
-                                  style: TextStyle(
-                                    fontFamily: 'Roboto',
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 24,
-                                    color: Color(0xFFE8EAED),
-                                  ),
-                                ),
-                            const SizedBox(height: 12),
-                            const Text(
-                              'Nhập thông tin của bạn',
-                              style: TextStyle(
-                                fontFamily: 'Roboto',
-                                fontSize: 14,
-                                color: Color(0xFFBDC1C6),
-                              ),
                             ),
                           ],
                         ),
@@ -228,7 +270,7 @@ class RegisterPageState extends State<RegisterPage> {
                               Row(
                                 children: [
                                   SizedBox(
-                                    width: 100, // Reduced width to prevent overflow
+                                    width: 70,
                                     child: DropdownButtonFormField<String>(
                                       value: _selectedDay,
                                       hint: const Text(
@@ -268,12 +310,12 @@ class RegisterPageState extends State<RegisterPage> {
                                       ),
                                       dropdownColor: const Color(0xFF3C4043),
                                       iconEnabledColor: const Color(0xFFE8EAED),
-                                      isExpanded: true, // Ensure it uses available space
+                                      isExpanded: true,
                                     ),
                                   ),
-                                  const SizedBox(width: 10), // Reduced spacing
+                                  const SizedBox(width: 10),
                                   SizedBox(
-                                    width: 100, // Reduced width to prevent overflow
+                                    width: 70,
                                     child: DropdownButtonFormField<String>(
                                       value: _selectedMonth,
                                       hint: const Text(
@@ -293,7 +335,7 @@ class RegisterPageState extends State<RegisterPage> {
                                         setState(() {
                                           _selectedMonth = value;
                                           _monthController.text = value ?? '';
-                                          _selectedDay = null; // Reset day when month changes
+                                          _selectedDay = null;
                                         });
                                       },
                                       decoration: const InputDecoration(
@@ -314,12 +356,12 @@ class RegisterPageState extends State<RegisterPage> {
                                       ),
                                       dropdownColor: const Color(0xFF3C4043),
                                       iconEnabledColor: const Color(0xFFE8EAED),
-                                      isExpanded: true, // Ensure it uses available space
+                                      isExpanded: true,
                                     ),
                                   ),
-                                  const SizedBox(width: 10), // Reduced spacing
+                                  const SizedBox(width: 10),
                                   SizedBox(
-                                    width: 85, // Reduced width to prevent overflow
+                                    width: 70,
                                     child: TextField(
                                       controller: _yearController,
                                       decoration: const InputDecoration(
@@ -556,7 +598,7 @@ class RegisterPageState extends State<RegisterPage> {
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
                                 ElevatedButton(
-                                  onPressed: _nextStep,
+                                  onPressed: _step >= 5 ? _register : _nextStep,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF8AB4F8),
                                     foregroundColor: const Color(0xFF202124),
@@ -576,6 +618,21 @@ class RegisterPageState extends State<RegisterPage> {
                                 ),
                               ],
                             ),
+                            const SizedBox(height: 16),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: TextButton(
+                                onPressed: _navigateToLogin,
+                                child: const Text(
+                                  'Đã có tài khoản? Đăng nhập',
+                                  style: TextStyle(
+                                    fontFamily: 'Roboto',
+                                    fontSize: 14,
+                                    color: Color(0xFF8AB4F8),
+                                  ),
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -585,7 +642,6 @@ class RegisterPageState extends State<RegisterPage> {
               ),
             ),
           ),
-         
         ],
       ),
     );
