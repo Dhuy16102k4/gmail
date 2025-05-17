@@ -288,71 +288,72 @@ class LoginPageState extends State<LoginPage> {
                               ),
                             ),
                             const SizedBox(height: 24),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                if (_showPasswordField)
-                                  TextButton(
-                                    onPressed: _goBack,
-                                    style: TextButton.styleFrom(
-                                      foregroundColor: const Color(0xFF8AB4F8),
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 8,
-                                      ),
-                                    ),
-                                    child: const Text(
-                                      'Trở về',
-                                      style: TextStyle(
-                                        fontFamily: 'Roboto',
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ),
-                                TextButton(
-                                  onPressed: _navigateToRegister,
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: const Color(0xFF8AB4F8),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 8,
-                                    ),
-                                  ),
-                                  child: const Text(
-                                    'Tạo tài khoản',
-                                    style: TextStyle(
-                                      fontFamily: 'Roboto',
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                ElevatedButton(
-                                  onPressed: _showPasswordField ? _login : _showNext,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF8AB4F8),
-                                    foregroundColor: const Color(0xFF202124),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 24,
-                                      vertical: 8,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    _showPasswordField ? 'Đăng nhập' : 'Tiếp theo',
-                                    style: const TextStyle(
-                                      fontFamily: 'Roboto',
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                       Row(
+  mainAxisAlignment: MainAxisAlignment.end,
+  children: [
+    if (_showPasswordField)
+      TextButton(
+        onPressed: _goBack,
+        style: TextButton.styleFrom(
+          foregroundColor: const Color(0xFF8AB4F8),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 8,
+          ),
+        ),
+        child: const Text(
+          'Trở về',
+          style: TextStyle(
+            fontFamily: 'Roboto',
+            fontWeight: FontWeight.w500,
+            fontSize: 14,
+          ),
+        ),
+      ),
+    if (!_showPasswordField) // Show "Create Account" only when password field is hidden
+      TextButton(
+        onPressed: _navigateToRegister,
+        style: TextButton.styleFrom(
+          foregroundColor: const Color(0xFF8AB4F8),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 8,
+          ),
+        ),
+        child: const Text(
+          'Tạo tài khoản',
+          style: TextStyle(
+            fontFamily: 'Roboto',
+            fontWeight: FontWeight.w500,
+            fontSize: 14,
+          ),
+        ),
+      ),
+    const SizedBox(width: 12),
+    ElevatedButton(
+      onPressed: _showPasswordField ? _login : _showNext,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF8AB4F8),
+        foregroundColor: const Color(0xFF202124),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(4),
+        ),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 24,
+          vertical: 8,
+        ),
+      ),
+      child: Text(
+        _showPasswordField ? 'Đăng nhập' : 'Tiếp theo',
+        style: const TextStyle(
+          fontFamily: 'Roboto',
+          fontWeight: FontWeight.w500,
+          fontSize: 14,
+        ),
+      ),
+    ),
+  ],
+),
                           ],
                         ),
                       ),
