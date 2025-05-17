@@ -37,6 +37,8 @@ class HomePage extends StatelessWidget {
     final user = FirebaseAuth.instance.currentUser;
     final userData = await _fetchUserData();
 
+    if (!context.mounted) return; // Guard against using context after async gap
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -183,26 +185,12 @@ class HomePage extends StatelessWidget {
       ),
       drawer: Drawer(
         backgroundColor: const Color(0xFF2A2E32),
+
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            DrawerHeader(
-              decoration: const BoxDecoration(
-                color: Color(0xFF2A2E32),
-              ),
-              child: Image.asset(
-                'assets/images/logo_gmail.png',
-                height: 40,
-                errorBuilder: (context, error, stackTrace) => const Text(
-                  'Gmail',
-                  style: TextStyle(
-                    color: Color(0xFFE8EAED),
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
+            // Logo and Gmail text as a non-interactive drawer item
+            _buildDrawerItem('logo', 'Gmail', '', isLogo: true),
             const Divider(color: Color(0xFF3C4043)),
             _buildDrawerItem('📥', 'Tất cả thư', '10 thg 5'),
             const Divider(color: Color(0xFF3C4043)),
@@ -295,22 +283,50 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildDrawerItem(String icon, String title, String count, {bool isActive = false}) {
+  Widget _buildDrawerItem(String icon, String title, String count, {bool isActive = false, bool isLogo = false}) {
     return ListTile(
-      leading: Text(icon, style: const TextStyle(fontSize: 18)),
+      leading: isLogo
+          ? Image.asset(
+              'assets/images/logo_gmail.png',
+              height: 24, // Same logo size as before
+              errorBuilder: (context, error, stackTrace) => const Text(
+                'Gmail',
+                style: TextStyle(
+                  color: Color(0xFFE8EAED),
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            )
+          : Text(icon, style: const TextStyle(fontSize: 18)),
       title: Row(
         children: [
           Expanded(
-            child: Text(
-              title,
-              style: TextStyle(
-                color: isActive ? const Color(0xFF8AB4F8) : const Color(0xFFE8EAED),
-                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                fontSize: 14,
-              ),
-            ),
+            child: isLogo
+                ? Row(
+                    children: [
+                      const Text(
+                        'Gmail',
+                        style: TextStyle(
+                          color: Color(0xFFE8EAED),
+                          fontFamily: 'Roboto',
+                          fontSize: 24, // Same text size as before
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 8), // Same spacing as before
+                    ],
+                  )
+                : Text(
+                    title,
+                    style: TextStyle(
+                      color: isActive ? const Color(0xFF8AB4F8) : const Color(0xFFE8EAED),
+                      fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                      fontSize: 14,
+                    ),
+                  ),
           ),
-          if (count.isNotEmpty)
+          if (count.isNotEmpty && !isLogo)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
@@ -328,7 +344,7 @@ class HomePage extends StatelessWidget {
         ],
       ),
       tileColor: isActive ? const Color(0xFF3C4043) : null,
-      onTap: () {},
+      onTap: isLogo ? null : () {}, // Non-interactive for logo item
     );
   }
 
