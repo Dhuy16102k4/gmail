@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'login_page.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -28,7 +29,7 @@ class RegisterPageState extends State<RegisterPage> {
   int _getDaysInMonth(String? month) {
     switch (month) {
       case '2':
-        return 28; // Simplified, not accounting for leap years
+        return 28; // Note: Not handling leap years for simplicity
       case '4':
       case '6':
       case '9':
@@ -40,6 +41,44 @@ class RegisterPageState extends State<RegisterPage> {
   }
 
   void _nextStep() {
+    // Basic validation before moving to the next step
+    if (_step == 1 && _firstNameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng nhập tên.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    if (_step == 2 && (_dayController.text.isEmpty || _monthController.text.isEmpty || _yearController.text.isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng nhập đầy đủ ngày sinh.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    if (_step == 3 && _usernameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng nhập tên tài khoản.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    if (_step == 4 && (_passwordController.text.isEmpty || _confirmPasswordController.text.isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng nhập mật khẩu và xác nhận mật khẩu.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() {
       if (_step < 5) _step++;
     });
@@ -69,15 +108,42 @@ class RegisterPageState extends State<RegisterPage> {
       return;
     }
 
+    if (_phoneController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng nhập số điện thoại.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     try {
+      // Create user with Firebase Authentication
       UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: '${_usernameController.text.trim()}@gmail.com',
         password: _passwordController.text.trim(),
       );
 
+      // Update display name
       await userCredential.user?.updateDisplayName(
         '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}'.trim(),
       );
+
+      // Save user information to Firestore
+      await FirebaseFirestore.instance.collection('users').doc(userCredential.user?.uid).set({
+        'firstName': _firstNameController.text.trim(),
+        'lastName': _lastNameController.text.trim(),
+        'email': '${_usernameController.text.trim()}@gmail.com',
+        'phone': _phoneController.text.trim(),
+        'dateOfBirth': {
+          'day': _dayController.text,
+          'month': _monthController.text,
+          'year': _yearController.text,
+        },
+        'gender': _selectedGender,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -86,6 +152,7 @@ class RegisterPageState extends State<RegisterPage> {
         ),
       );
 
+      // Navigate to LoginPage after successful registration
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const LoginPage()),
@@ -99,12 +166,22 @@ class RegisterPageState extends State<RegisterPage> {
         case 'weak-password':
           message = 'Mật khẩu quá yếu.';
           break;
+        case 'invalid-email':
+          message = 'Email không hợp lệ.';
+          break;
         default:
           message = 'Đăng ký thất bại: ${e.message}';
       }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Lỗi không xác định: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -142,7 +219,7 @@ class RegisterPageState extends State<RegisterPage> {
               child: SingleChildScrollView(
                 child: Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16),
-                  padding: const EdgeInsets.all(32),
+                  padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     color: const Color(0xFF303134),
                     borderRadius: BorderRadius.circular(12),
@@ -154,8 +231,8 @@ class RegisterPageState extends State<RegisterPage> {
                       ),
                     ],
                   ),
-                  width: 700,
-                  constraints: const BoxConstraints(minHeight: 400, maxHeight: double.infinity),
+                  width: 600,
+                  constraints: const BoxConstraints(minHeight: 350, maxHeight: double.infinity),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -169,23 +246,39 @@ class RegisterPageState extends State<RegisterPage> {
                               children: [
                                 Image.network(
                                   'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png',
-                                  width: 40,
+                                  width: 36,
                                 ),
-                                const SizedBox(width: 12),
+                                const SizedBox(width: 10),
                                 const Text(
                                   'Register',
                                   style: TextStyle(
                                     fontFamily: 'Roboto',
-                                    fontSize: 20,
+                                    fontSize: 18,
                                     color: Color(0xFFE8EAED),
                                   ),
                                 ),
                               ],
                             ),
+                            const SizedBox(height: 16),
+                            LinearProgressIndicator(
+                              value: _step / 5,
+                              backgroundColor: const Color(0xFF5F6368),
+                              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF8AB4F8)),
+                              minHeight: 4,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Bước $_step của 5',
+                              style: const TextStyle(
+                                fontFamily: 'Roboto',
+                                fontSize: 12,
+                                color: Color(0xFFBDC1C6),
+                              ),
+                            ),
                           ],
                         ),
                       ),
-                      const SizedBox(width: 24),
+                      const SizedBox(width: 20),
                       Expanded(
                         flex: 55,
                         child: Column(
@@ -196,13 +289,13 @@ class RegisterPageState extends State<RegisterPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 SizedBox(
-                                  width: 300,
+                                  width: 260,
                                   child: TextField(
                                     controller: _lastNameController,
                                     style: const TextStyle(
                                       color: Color(0xFFE8EAED),
                                       fontFamily: 'Roboto',
-                                      fontSize: 16,
+                                      fontSize: 14,
                                     ),
                                     decoration: const InputDecoration(
                                       hintText: 'Họ (không bắt buộc)',
@@ -219,20 +312,19 @@ class RegisterPageState extends State<RegisterPage> {
                                       ),
                                       focusedBorder: OutlineInputBorder(
                                         borderSide: BorderSide(color: Color(0xFF8AB4F8)),
-                                        borderRadius: BorderRadius.all(Radius.circular(4)),
-                                      ),
+                                        borderRadius: BorderRadius.all(Radius.circular(603))),
                                     ),
                                   ),
                                 ),
-                                const SizedBox(height: 16),
+                                const SizedBox(height: 12),
                                 SizedBox(
-                                  width: 300,
+                                  width: 260,
                                   child: TextField(
                                     controller: _firstNameController,
                                     style: const TextStyle(
                                       color: Color(0xFFE8EAED),
                                       fontFamily: 'Roboto',
-                                      fontSize: 16,
+                                      fontSize: 14,
                                     ),
                                     decoration: const InputDecoration(
                                       hintText: 'Tên',
@@ -257,12 +349,12 @@ class RegisterPageState extends State<RegisterPage> {
                               ],
                             ),
                             if (_step >= 2) ...[
-                              const SizedBox(height: 24),
+                              const SizedBox(height: 16),
                               const Text(
                                 'Ngày sinh',
                                 style: TextStyle(
                                   fontFamily: 'Roboto',
-                                  fontSize: 16,
+                                  fontSize: 14,
                                   color: Color(0xFFE8EAED),
                                 ),
                               ),
@@ -270,19 +362,19 @@ class RegisterPageState extends State<RegisterPage> {
                               Row(
                                 children: [
                                   SizedBox(
-                                    width: 70,
+                                    width: 80,
                                     child: DropdownButtonFormField<String>(
                                       value: _selectedDay,
                                       hint: const Text(
                                         'Ngày',
-                                        style: TextStyle(color: Color(0xFFBDC1C6)),
+                                        style: TextStyle(color: Color(0xFFBDC1C6), fontSize: 12),
                                       ),
                                       items: days.map((String day) {
                                         return DropdownMenuItem<String>(
                                           value: day,
                                           child: Text(
                                             day,
-                                            style: const TextStyle(color: Color(0xFFE8EAED)),
+                                            style: const TextStyle(color: Color(0xFFE8EAED), fontSize: 12),
                                           ),
                                         );
                                       }).toList(),
@@ -313,21 +405,21 @@ class RegisterPageState extends State<RegisterPage> {
                                       isExpanded: true,
                                     ),
                                   ),
-                                  const SizedBox(width: 10),
+                                  const SizedBox(width: 8),
                                   SizedBox(
-                                    width: 70,
+                                    width: 90,
                                     child: DropdownButtonFormField<String>(
                                       value: _selectedMonth,
                                       hint: const Text(
                                         'Tháng',
-                                        style: TextStyle(color: Color(0xFFBDC1C6)),
+                                        style: TextStyle(color: Color(0xFFBDC1C6), fontSize: 12),
                                       ),
                                       items: months.map((String month) {
                                         return DropdownMenuItem<String>(
                                           value: month,
                                           child: Text(
                                             month,
-                                            style: const TextStyle(color: Color(0xFFE8EAED)),
+                                            style: const TextStyle(color: Color(0xFFE8EAED), fontSize: 12),
                                           ),
                                         );
                                       }).toList(),
@@ -359,14 +451,14 @@ class RegisterPageState extends State<RegisterPage> {
                                       isExpanded: true,
                                     ),
                                   ),
-                                  const SizedBox(width: 10),
+                                  const SizedBox(width: 8),
                                   SizedBox(
                                     width: 70,
                                     child: TextField(
                                       controller: _yearController,
                                       decoration: const InputDecoration(
                                         hintText: 'Năm',
-                                        hintStyle: TextStyle(color: Color(0xFFBDC1C6)),
+                                        hintStyle: TextStyle(color: Color(0xFFBDC1C6), fontSize: 12),
                                         filled: true,
                                         fillColor: Color(0xFF3C4043),
                                         border: OutlineInputBorder(
@@ -382,23 +474,23 @@ class RegisterPageState extends State<RegisterPage> {
                                           borderRadius: BorderRadius.all(Radius.circular(4)),
                                         ),
                                       ),
-                                      style: const TextStyle(color: Color(0xFFE8EAED)),
+                                      style: const TextStyle(color: Color(0xFFE8EAED), fontSize: 12),
                                     ),
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 24),
+                              const SizedBox(height: 16),
                               Row(
                                 children: [
                                   const Text(
                                     'Giới tính:',
                                     style: TextStyle(
                                       fontFamily: 'Roboto',
-                                      fontSize: 16,
+                                      fontSize: 14,
                                       color: Color(0xFFE8EAED),
                                     ),
                                   ),
-                                  const SizedBox(width: 16),
+                                  const SizedBox(width: 12),
                                   Row(
                                     children: [
                                       Radio(
@@ -415,11 +507,11 @@ class RegisterPageState extends State<RegisterPage> {
                                         'Nam',
                                         style: TextStyle(
                                           fontFamily: 'Roboto',
-                                          fontSize: 16,
+                                          fontSize: 14,
                                           color: Color(0xFFE8EAED),
                                         ),
                                       ),
-                                      const SizedBox(width: 16),
+                                      const SizedBox(width: 12),
                                       Radio(
                                         value: 'Nữ',
                                         groupValue: _selectedGender,
@@ -434,7 +526,7 @@ class RegisterPageState extends State<RegisterPage> {
                                         'Nữ',
                                         style: TextStyle(
                                           fontFamily: 'Roboto',
-                                          fontSize: 16,
+                                          fontSize: 14,
                                           color: Color(0xFFE8EAED),
                                         ),
                                       ),
@@ -444,15 +536,15 @@ class RegisterPageState extends State<RegisterPage> {
                               ),
                             ],
                             if (_step >= 3) ...[
-                              const SizedBox(height: 24),
+                              const SizedBox(height: 16),
                               SizedBox(
-                                width: 300,
+                                width: 260,
                                 child: TextField(
                                   controller: _usernameController,
                                   style: const TextStyle(
                                     color: Color(0xFFE8EAED),
                                     fontFamily: 'Roboto',
-                                    fontSize: 16,
+                                    fontSize: 14,
                                   ),
                                   decoration: const InputDecoration(
                                     hintText: 'Tên tài khoản',
@@ -478,16 +570,16 @@ class RegisterPageState extends State<RegisterPage> {
                               ),
                             ],
                             if (_step >= 4) ...[
-                              const SizedBox(height: 24),
+                              const SizedBox(height: 16),
                               SizedBox(
-                                width: 300,
+                                width: 260,
                                 child: TextField(
                                   controller: _passwordController,
                                   obscureText: !_showPassword,
                                   style: const TextStyle(
                                     color: Color(0xFFE8EAED),
                                     fontFamily: 'Roboto',
-                                    fontSize: 16,
+                                    fontSize: 14,
                                   ),
                                   decoration: const InputDecoration(
                                     hintText: 'Mật khẩu',
@@ -509,16 +601,16 @@ class RegisterPageState extends State<RegisterPage> {
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 12),
                               SizedBox(
-                                width: 300,
+                                width: 260,
                                 child: TextField(
                                   controller: _confirmPasswordController,
                                   obscureText: !_showPassword,
                                   style: const TextStyle(
                                     color: Color(0xFFE8EAED),
                                     fontFamily: 'Roboto',
-                                    fontSize: 16,
+                                    fontSize: 14,
                                   ),
                                   decoration: const InputDecoration(
                                     hintText: 'Xác nhận mật khẩu',
@@ -540,7 +632,7 @@ class RegisterPageState extends State<RegisterPage> {
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 12),
                               Row(
                                 children: [
                                   Checkbox(
@@ -554,7 +646,7 @@ class RegisterPageState extends State<RegisterPage> {
                                     'Hiển thị mật khẩu',
                                     style: TextStyle(
                                       fontFamily: 'Roboto',
-                                      fontSize: 14,
+                                      fontSize: 12,
                                       color: Color(0xFFE8EAED),
                                     ),
                                   ),
@@ -562,15 +654,15 @@ class RegisterPageState extends State<RegisterPage> {
                               ),
                             ],
                             if (_step >= 5) ...[
-                              const SizedBox(height: 24),
+                              const SizedBox(height: 16),
                               SizedBox(
-                                width: 300,
+                                width: 260,
                                 child: TextField(
                                   controller: _phoneController,
                                   style: const TextStyle(
                                     color: Color(0xFFE8EAED),
                                     fontFamily: 'Roboto',
-                                    fontSize: 16,
+                                    fontSize: 14,
                                   ),
                                   decoration: const InputDecoration(
                                     hintText: 'Số điện thoại',
@@ -593,7 +685,7 @@ class RegisterPageState extends State<RegisterPage> {
                                 ),
                               ),
                             ],
-                            const SizedBox(height: 24),
+                            const SizedBox(height: 16),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
@@ -602,7 +694,7 @@ class RegisterPageState extends State<RegisterPage> {
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF8AB4F8),
                                     foregroundColor: const Color(0xFF202124),
-                                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(4),
                                     ),
@@ -612,13 +704,13 @@ class RegisterPageState extends State<RegisterPage> {
                                     style: const TextStyle(
                                       fontFamily: 'Roboto',
                                       fontWeight: FontWeight.w500,
-                                      fontSize: 14,
+                                      fontSize: 12,
                                     ),
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 12),
                             Align(
                               alignment: Alignment.centerLeft,
                               child: TextButton(
@@ -627,7 +719,7 @@ class RegisterPageState extends State<RegisterPage> {
                                   'Đã có tài khoản? Đăng nhập',
                                   style: TextStyle(
                                     fontFamily: 'Roboto',
-                                    fontSize: 14,
+                                    fontSize: 12,
                                     color: Color(0xFF8AB4F8),
                                   ),
                                 ),

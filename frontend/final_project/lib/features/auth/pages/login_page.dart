@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'register_page.dart';
+import 'home_page.dart'; // Ensure HomePage is imported
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -24,13 +25,30 @@ class LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _login() async {
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-      // Navigation to HomePage is handled by AuthWrapper
+      // Close loading dialog
+      if (mounted) Navigator.pop(context);
+      // Explicitly navigate to HomePage
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomePage()),
+        );
+      }
     } on FirebaseAuthException catch (e) {
+      // Close loading dialog
+      if (mounted) Navigator.pop(context);
       String message;
       switch (e.code) {
         case 'user-not-found':
@@ -48,19 +66,25 @@ class LoginPageState extends State<LoginPage> {
         default:
           message = 'Đăng nhập thất bại: ${e.message}';
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Lỗi không xác định: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      // Close loading dialog
+      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi không xác định: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -226,7 +250,9 @@ class LoginPageState extends State<LoginPage> {
                                     fillColor: const Color(0xFF3C4043),
                                     suffixIcon: IconButton(
                                       icon: Icon(
-                                        _showPassword ? Icons.visibility : Icons.visibility_off,
+                                        _showPassword
+                                            ? Icons.visibility
+                                            : Icons.visibility_off,
                                         color: const Color(0xFFBDC1C6),
                                       ),
                                       onPressed: _togglePasswordVisibility,
@@ -257,10 +283,10 @@ class LoginPageState extends State<LoginPage> {
                             if (!_showPasswordField)
                               GestureDetector(
                                 onTap: () {
-                                  // Implement password recovery logic here
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text('Chức năng khôi phục mật khẩu chưa được triển khai.'),
+                                      content: Text(
+                                          'Chức năng khôi phục mật khẩu chưa được triển khai.'),
                                       backgroundColor: Colors.orange,
                                     ),
                                   );
@@ -288,72 +314,72 @@ class LoginPageState extends State<LoginPage> {
                               ),
                             ),
                             const SizedBox(height: 24),
-                       Row(
-  mainAxisAlignment: MainAxisAlignment.end,
-  children: [
-    if (_showPasswordField)
-      TextButton(
-        onPressed: _goBack,
-        style: TextButton.styleFrom(
-          foregroundColor: const Color(0xFF8AB4F8),
-          padding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 8,
-          ),
-        ),
-        child: const Text(
-          'Trở về',
-          style: TextStyle(
-            fontFamily: 'Roboto',
-            fontWeight: FontWeight.w500,
-            fontSize: 14,
-          ),
-        ),
-      ),
-    if (!_showPasswordField) // Show "Create Account" only when password field is hidden
-      TextButton(
-        onPressed: _navigateToRegister,
-        style: TextButton.styleFrom(
-          foregroundColor: const Color(0xFF8AB4F8),
-          padding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 8,
-          ),
-        ),
-        child: const Text(
-          'Tạo tài khoản',
-          style: TextStyle(
-            fontFamily: 'Roboto',
-            fontWeight: FontWeight.w500,
-            fontSize: 14,
-          ),
-        ),
-      ),
-    const SizedBox(width: 12),
-    ElevatedButton(
-      onPressed: _showPasswordField ? _login : _showNext,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF8AB4F8),
-        foregroundColor: const Color(0xFF202124),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(4),
-        ),
-        padding: const EdgeInsets.symmetric(
-          horizontal: 24,
-          vertical: 8,
-        ),
-      ),
-      child: Text(
-        _showPasswordField ? 'Đăng nhập' : 'Tiếp theo',
-        style: const TextStyle(
-          fontFamily: 'Roboto',
-          fontWeight: FontWeight.w500,
-          fontSize: 14,
-        ),
-      ),
-    ),
-  ],
-),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                if (_showPasswordField)
+                                  TextButton(
+                                    onPressed: _goBack,
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: const Color(0xFF8AB4F8),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 8,
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      'Trở về',
+                                      style: TextStyle(
+                                        fontFamily: 'Roboto',
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ),
+                                if (!_showPasswordField)
+                                  TextButton(
+                                    onPressed: _navigateToRegister,
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: const Color(0xFF8AB4F8),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 8,
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      'Tạo tài khoản',
+                                      style: TextStyle(
+                                        fontFamily: 'Roboto',
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ),
+                                const SizedBox(width: 12),
+                                ElevatedButton(
+                                  onPressed: _showPasswordField ? _login : _showNext,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF8AB4F8),
+                                    foregroundColor: const Color(0xFF202124),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 24,
+                                      vertical: 8,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    _showPasswordField ? 'Đăng nhập' : 'Tiếp theo',
+                                    style: const TextStyle(
+                                      fontFamily: 'Roboto',
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ],
                         ),
                       ),
